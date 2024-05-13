@@ -273,5 +273,3 @@ SHPlayer::isOnePair() const
 
     return false;
 }
-
-
