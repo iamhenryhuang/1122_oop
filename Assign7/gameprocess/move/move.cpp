@@ -7,45 +7,6 @@ Move::Move(Player* player, Room* room) : player(player), room(room) {}
 
 Move::~Move() {}
 
-/*ProcessInfo Move::run(InputState action) {
-    switch(action) {
-        case ACTION_UP:
-            player->moveUp();
-            break;
-        case ACTION_DOWN:
-            player->moveDown();
-            break;
-        case ACTION_LEFT:
-            player->moveLeft();
-            return MOVE_FINISH_ROOMCHANGE_LEFT;
-        case ACTION_RIGHT:
-            player->moveRight();
-            return MOVE_FINISH_ROOMCHANGE_RIGHT;
-        case ACTION_PAUSE:
-            return MOVE_FINISH_PAUSE;
-        case ACTION_BATTLE:
-            return MOVE_FINISH_BATTLE;
-        default:
-            break;
-    }
-
-    for (auto enemy : room->getEnemies()) {
-        Position enemyNextPosition = enemy->nextPosition();
-                
-        if (room->walkable(enemyNextPosition)) {
-            enemy->setPosition(enemyNextPosition);
-        }
-    }
-
-    for(auto enemy : room->getEnemies()) {
-        if(enemy->getPosition() == player->getPosition()) {
-            return MOVE_FINISH_BATTLE;
-        }
-    }
-
-    return CONTINUE;
-}*/
-
 ProcessInfo Move::run(InputState action) {
     // implement movement logic here
     Position pos = player->getPosition();
