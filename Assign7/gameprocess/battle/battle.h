@@ -19,7 +19,8 @@ private:
 
     BattleAction actionPlayerSelected;
     BattleAction actionEnemySelected;
-
+    
+    static BattleMenuInput InputStateToBattleMenuInput(InputState action);
     // Please store the damage calculation result in this variable. 
     // The damage will be displayed based on this variable when rendering.
     int damageToPlayer;
