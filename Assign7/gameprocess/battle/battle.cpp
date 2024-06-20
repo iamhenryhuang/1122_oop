@@ -8,76 +8,92 @@ Battle::Battle(Player* player, Enemy* enemy) : player(player), enemy(enemy), sta
     actionPlayerSelected = ATTACK;
 }
 
-Battle::~Battle() {
-    delete player;
-    delete enemy;
-}
+Battle::~Battle() {}
 
 int Battle::damageCalculate(BattleAction attackerAction, BattleAction targetAction, int damage) {
-    double multiplier = 1.0;
-    if (attackerAction == FORCE_ATTACK) {
-        multiplier = FORCE_ATTACK_MULTIPLIER;
-    } else if (attackerAction == ATTACK) {
-        multiplier = ATTACK_MULTIPLIER;
-    } else if (attackerAction == DEFEND || attackerAction == HEAL) {
-        return 0;
+    if(attackerAction == FORCE_ATTACK) {
+        damage *= FORCE_ATTACK_MULTIPLIER;
+    } else if(attackerAction == ATTACK) {
+        damage *= ATTACK_MULTIPLIER;
+    } else if(attackerAction == DEFEND) {
+        damage = 0;
+    } else if(attackerAction == HEAL) {
+        damage = 0;
     }
 
-    if (targetAction == DEFEND) {
-        multiplier /= DEFEND_MULTIPLIER;
-    } else if (targetAction == FORCE_ATTACK || targetAction == HEAL) {
-        multiplier *= FORCE_ATTACK_MULTIPLIER;
+    if(targetAction == DEFEND) {
+        damage /= DEFEND_MULTIPLIER;
+    } else if(targetAction == FORCE_ATTACK) {
+        damage *= FORCE_ATTACK_MULTIPLIER;
+    } else if(targetAction == HEAL) {
+        damage *= FORCE_ATTACK_MULTIPLIER;
     }
 
-    return static_cast<int>(damage * multiplier);
+    return damage;
+}
+
+BattleMenuInput Battle::InputStateToBattleMenuInput(InputState action) {
+    switch(action) {
+    case ACTION_UP:
+        return MENU_UP;
+    case ACTION_DOWN:
+        return MENU_DOWN;
+    case ACTION_CONFIRM:
+        return MENU_CONFIRM;
+    default:
+        return MENU_NONE;
+    }
 }
 
 ProcessInfo Battle::run(InputState action) {
-    switch (state) {
-        case ACTION_SELECTING:
-            switch (action) {
-                case ACTION_UP:
-                    actionPlayerSelected = static_cast<BattleAction>((static_cast<int>(actionPlayerSelected) - 1 + BATTLE_ACTION_COUNT_PLAYER) % BATTLE_ACTION_COUNT_PLAYER);
-                    break;
-                case ACTION_DOWN:
-                    actionPlayerSelected = static_cast<BattleAction>((static_cast<int>(actionPlayerSelected) + 1) % BATTLE_ACTION_COUNT_PLAYER);
-                    break;
-                case ACTION_CONFIRM:
-                    actionEnemySelected = static_cast<BattleAction>(rand() % BATTLE_ACTION_COUNT_ENEMY); // 随机选择敌人行动
-                    damageToPlayer = damageCalculate(actionEnemySelected, actionPlayerSelected, enemy->getAttack());
-                    damageToEnemy = damageCalculate(actionPlayerSelected, actionEnemySelected, player->getAttack());
 
-                    if (actionPlayerSelected == HEAL) {
-                        player->heal(player->getHealPower());
-                    } else {
-                        enemy->hurt(damageToEnemy);
-                    }
+    BattleMenuInput menuInput = InputStateToBattleMenuInput(action);
+    if(menuInput == MENU_NONE) {
+        return CONTINUE;
+    }
+    
+    if (state == ENEMY_DEAD) {
+        return BATTLE_FINISH_PLAYER_WIN;
+    } else if (state == PLAYER_DEAD) {
+        return BATTLE_FINISH_PLAYER_DEAD;
+    }
 
-                    if (actionEnemySelected == HEAL) {
-                        enemy->heal(enemy->getAttack());
-                    } else {
-                        player->hurt(damageToPlayer);
-                    }
+    if(player->getHealth() <= 0) {
+        state = PLAYER_DEAD;
+    } else if(enemy->getHealth() <= 0) {
+        state = ENEMY_DEAD;
+    }
 
-                    if (player->getHealth() <= 0) {
-                        state = PLAYER_DEAD;
-                    } else if (enemy->getHealth() <= 0) {
-                        state = ENEMY_DEAD;
-                    } else {
-                        state = TURN_END;
-                    }
-                    break;
-                default:
-                    break;
-            }
-            break;
-        case TURN_END:
-            state = ACTION_SELECTING;
-            break;
-        case PLAYER_DEAD:
-            return BATTLE_FINISH_PLAYER_DEAD;
-        case ENEMY_DEAD:
-            return BATTLE_FINISH_PLAYER_WIN;
+    if (state == TURN_END) {
+        state = ACTION_SELECTING;
+        return CONTINUE;
+    }
+
+    if(state == ACTION_SELECTING) {
+        switch (menuInput) {
+            case MENU_UP:
+                actionPlayerSelected = BattleAction((actionPlayerSelected + (BATTLE_ACTION_COUNT_PLAYER - 1)) % BATTLE_ACTION_COUNT_PLAYER);
+                break;
+            case MENU_DOWN:
+                actionPlayerSelected = BattleAction((actionPlayerSelected + 1) % BATTLE_ACTION_COUNT_PLAYER);
+                break;
+            case MENU_CONFIRM:
+                state = TURN_END;
+                break;
+            default:
+                break;
+        }
+    }
+
+    if(state == TURN_END) {
+        actionEnemySelected = BattleAction(rand() % BATTLE_ACTION_COUNT_ENEMY);
+        damageToEnemy = damageCalculate(actionPlayerSelected, actionEnemySelected, player->getAttack());
+        damageToPlayer = damageCalculate(actionEnemySelected, actionPlayerSelected, enemy->getAttack());
+        if(actionPlayerSelected == HEAL) {
+            player->heal(player->getHealPower());
+        }
+        enemy->hurt(damageToEnemy);
+        player->hurt(damageToPlayer);
     }
 
     return CONTINUE;
